@@ -17,12 +17,13 @@
 
 1. Vars
 ```
-export USER=""
+export GCLOUD_USER=""
 export PROJECT_ID=""
 export PROJECT_NAME="devel"
 export REGION=europe-north1
 export ZONE=${REGION}-a
-export JENKINS_HOST="jenkins.fqdn"
+export JENKINS_HOST="A-record.fqdn"
+export REPO="${PROJECT_NAME}-repo"
 ```
 
 
@@ -121,7 +122,7 @@ metadata:
   name: letsencrypt-http
 spec:
   acme:
-    email: $USER
+    email: $GCLOUD_USER
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-http-key
@@ -157,6 +158,67 @@ get logs on the jenkins in the jenkins namespace to retrieve
 the initial password and navigate to the URL it should be up
 
 
+### Configure image registry
+1. Enable artifact type of registry
+```
+gcloud services enable artifactregistry.googleapis.com
+```
+
+> TODO: Struggled with artifactory authentication / permissions
+> need to clean this up to remove duplicate / unnecessary steps
+
+```
+for role in \
+  artifactregistry.reader \
+  artifactregistry.writer \
+  artifactregistry.repoAdmin \
+  artifactregistry.admin; \
+do \
+  echo -e "\n$role" && \
+  gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="user:${GCLOUD_USER}"  --role=roles/${role};
+done
+
+
+gcloud artifacts repositories create $REPO \
+  --repository-format=docker \
+  --location=$REGION \
+  --description="$REPO image registry"
+
+
+gcloud auth configure-docker ${REGION}-docker.pkg.dev
+
+gcloud auth configure-docker
+
+gcloud auth print-access-token | docker login \
+  -u oauth2accesstoken --password-stdin \
+  https://${REGION}-docker.pkg.dev
+```
+
+2. Confirm get-iam-policy does not get Permission Denied
+```
+gcloud artifacts repositories get-iam-policy ${REPO} \
+  --location=${REGION} \
+  --project=${PROJECT_ID}
+```
+
+3. Tag and push image
+```
+docker tag test ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/test:2285
+
+docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/test:2285
+```
+
+4. Verification
+
+```
+gcloud artifacts docker images list ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}
+gcloud artifacts repositories list
+
+# Delete Repository
+# gcloud artifacts repositories delete ${REPO} \
+#  --location=$REGION \
+```
 
 
 ## Footnotes / References
