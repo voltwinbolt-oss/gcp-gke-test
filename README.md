@@ -159,19 +159,19 @@ the initial password and navigate to the URL it should be up
 
 
 
-### Footnotes / References
+## Footnotes / References
 
 > I have not used GCP/GKE prior, and found it to be 
 > a good opportunity to explore GoogleCloudPlatform
 
-## GCP introduction 
+#### GCP introduction 
 https://cloud.google.com/kubernetes-engine/docs/about
 https://cloud.google.com/kubernetes-engine/docs/learn
 
-### Quickstart example, helpful to dive into GKE general concepts on CLI
+#### Quickstart example, helpful to dive into GKE general concepts on CLI
 https://github.com/GoogleCloudPlatform/bank-of-anthos
 
-## INGRESS
+#### INGRESS
 Ingress is a well deserved dedicated section in references
 Helpful detour for issue with ingress load balancer not assigning external ip
 https://cloud.google.com/kubernetes-engine/docs/concepts/ingress
@@ -180,7 +180,7 @@ https://cloud.google.com/kubernetes-engine/docs/concepts/ingress
 > since I do not plan on deleting the Ingress(es) for
 > the purposes of this project 
 
-### TLS:  Using Google-managed SSL certificates
+#### TLS:  Using Google-managed SSL certificates
 https://cloud.google.com/kubernetes-engine/docs/how-to/managed-certs
 
 > after "nn" hours of attempting to resolve the cert provisioning via
@@ -190,7 +190,7 @@ https://cloud.google.com/kubernetes-engine/docs/how-to/managed-certs
 > For the purposes of this project I've tabled for now the research on 
 > Google-managed certs for TLS approach in favor of robust Let's Encrypt
 
-### TLS: Using Let's Encrypt with ingress-nginx
+#### TLS: Using Let's Encrypt with ingress-nginx
 
 https://cert-manager.io/docs/
 https://cert-manager.io/docs/configuration/acme/
