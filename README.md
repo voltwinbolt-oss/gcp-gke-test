@@ -238,18 +238,21 @@ gcloud compute instances create testbox \
 
 
 2. add jenkins user to iam for artifactory pushes
-```
-gcloud iam service-accounts create jenkins-user
+
+`gcloud iam service-accounts create jenkins-user`
 
 3. assign roles to jenkins-user
+```
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:jenkins-user@${PROJECT_ID}.iam.gserviceaccount.com" \
   --role="roles/artifactregistry.writer"
+```
 
 4. get credential
+```
 gcloud iam service-accounts keys create ~/artifactory-key.json \
   --iam-account=jenkins-user@${PROJECT_ID}.iam.gserviceaccount.com
-
+```
 
 
 ## Footnotes / References
