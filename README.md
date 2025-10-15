@@ -221,6 +221,37 @@ gcloud artifacts repositories list
 ```
 
 
+### optional dependencies
+
+build agent with policy to access artifactory
+
+1. select size, like e2-standard-2 cpu 2 ram 4G 
+```
+gcloud compute instances create testbox \
+  --zone=${ZONE} \
+  --machine-type=e2-standard-2 \
+  --image-family=debian-13 \
+  --image-project=debian-cloud
+```
+
+`gcloud compute ssh testbox --zone=$ZONE`
+
+
+2. add jenkins user to iam for artifactory pushes
+```
+gcloud iam service-accounts create jenkins-user
+
+3. assign roles to jenkins-user
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:jenkins-user@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/artifactregistry.writer"
+
+4. get credential
+gcloud iam service-accounts keys create ~/artifactory-key.json \
+  --iam-account=jenkins-user@${PROJECT_ID}.iam.gserviceaccount.com
+
+
+
 ## Footnotes / References
 
 > I have not used GCP/GKE prior, and found it to be 
