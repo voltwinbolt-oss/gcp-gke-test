@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins-pv
+  namespace: jenkins
+spec:
+  accessModes:
+    - ReadWriteOnce # note about Once/Many many is for workloads to access volume while running on different nodes
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: standard # cheapest choice on gke

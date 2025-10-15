@@ -1,0 +1,199 @@
+# README 
+
+## Topics:
+
+- setup of GoogleCloudPlatform (GCP) standard GoogleKubernetesEnterprise (GKE) test cluster
+- deployment of jenkins with TLS in GKE
+
+## Prerequisites:
+
+- I used debian trixie vm with bind9-dnsutils for `dig` command
+- google-cloud-sdk https://cloud.google.com/sdk/docs/install 
+- gcloud init successfully completed and authenticated against the GoogleCloudPlatform account
+
+> Now we are ready to begin with the GKE setup and Jenkins deployment
+
+## Initialize
+
+1. Vars
+```
+export USER=""
+export PROJECT_ID=""
+export PROJECT_NAME="devel"
+export REGION=europe-north1
+export ZONE=${REGION}-a
+export JENKINS_HOST="jenkins.fqdn"
+```
+
+
+2. Create project
+
+```
+gcloud projects create ${PROJECT_ID} \
+  --name="$PROJECT_NAME" \
+  --set-as-default
+```
+
+3. Set quota project and enable billing (required to deploy GKE)
+
+```
+gcloud auth application-default set-quota-project ${PROJECT_ID}
+gcloud config get-value project
+# ^ verify the current default project is set to the new project
+```
+then, visit the billing for the project to enable it
+https://console.cloud.google.com/billing/linkedaccount?project= <$PROJECT_ID>
+Once billing enabled, create the gke-standard
+
+
+## GKE
+
+1. Create GKE standard
+```
+gcloud container clusters create $CLUSTER_NAME \
+  --num-nodes=3 \
+  --machine-type=e2-medium \
+  --project=${PROJECT_ID} \
+  --zone=${ZONE}
+```
+
+2. verify kube config context points to the GKE cluster
+
+`kubectl config get-contexts`
+
+
+3. Test ssh access
+
+```
+test_instance=$(gcloud compute instances list | awk '{print $1}'|grep -v NAME|head -1)
+gcloud compute ssh ${test_instance} --zone=$ZONE
+```
+
+4. Label nodes
+
+```
+nodes=($(kubectl get nodes -o wide|awk '{print $1}'|grep -v NAME))
+count="${#nodes[*]}"
+labels="apps apps ci"
+
+for label in $labels; do \
+  count=$(( count-1 )); \
+  echo "count = $count"; \
+  kubectl label node ${nodes[$count]} purpose=${label};
+done
+```
+
+then, verify "purpose" label present
+
+```
+for node in ${nodes[*]}; do \
+  echo -e "\n$node checking purpose label present "; \
+  kubectl get node $node --show-labels | grep --color -oe "purpose....";
+done
+```
+
+## TLS
+> see Footnotes for why I picked Let's Encrypt option at this time
+
+1. Install nginx ingress controller
+```
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.13.3/deploy/static/provider/cloud/deploy.yaml
+```
+
+verify pods completed / running 
+`kubectl get pods -n ingress-nginx`
+
+2. Install cert manager
+```
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.19.0/cert-manager.yaml
+```
+
+verify pods completed / running 
+`kubectl get pods -n cert-manager`
+
+
+3. apply ClusterIssuer
+```
+cat >> cert-manager.yaml <<EOF
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-http
+spec:
+  acme:
+    email: $USER
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-http-key
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+EOF
+
+kubectl apply -f cert-manager.yaml
+```
+
+
+
+## Jenkins 
+
+1. Create an A record -> EXTERNAL-IP for `$JENKINS_HOST` at the DNS hosting provider (i use ClouDNS)
+```
+EXTERNAL_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx | awk '{print $4}'|grep -v EXTERNAL)
+echo $EXTERNAL_IP
+```
+
+2. Deploy jenkins workload
+
+```
+git clone 
+bash make.sh
+kubectl apply -f jenkins.yaml
+```
+
+Wait for the pods to go live and ready
+get logs on the jenkins in the jenkins namespace to retrieve
+the initial password and navigate to the URL it should be up
+
+
+
+
+### Footnotes / References
+
+> I have not used GCP/GKE prior, and found it to be 
+> a good opportunity to explore GoogleCloudPlatform
+
+## GCP introduction 
+https://cloud.google.com/kubernetes-engine/docs/about
+https://cloud.google.com/kubernetes-engine/docs/learn
+
+### Quickstart example, helpful to dive into GKE general concepts on CLI
+https://github.com/GoogleCloudPlatform/bank-of-anthos
+
+## INGRESS
+Ingress is a well deserved dedicated section in references
+Helpful detour for issue with ingress load balancer not assigning external ip
+https://cloud.google.com/kubernetes-engine/docs/concepts/ingress
+
+> I have skipped creating reserved static ip address,
+> since I do not plan on deleting the Ingress(es) for
+> the purposes of this project 
+
+### TLS:  Using Google-managed SSL certificates
+https://cloud.google.com/kubernetes-engine/docs/how-to/managed-certs
+
+> after "nn" hours of attempting to resolve the cert provisioning via
+> Google-managed certificates and following the above link precisely as
+> documented with valid values, and debugging - I've decided to try a
+> different approach with Let's Encrypt - and voila it worked out the box.
+> For the purposes of this project I've tabled for now the research on 
+> Google-managed certs for TLS approach in favor of robust Let's Encrypt
+
+### TLS: Using Let's Encrypt with ingress-nginx
+
+https://cert-manager.io/docs/
+https://cert-manager.io/docs/configuration/acme/
+https://cert-manager.io/docs/usage/ingress/
+
+https://github.com/kubernetes/ingress-nginx/tags
