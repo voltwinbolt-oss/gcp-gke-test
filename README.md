@@ -147,7 +147,7 @@ echo $EXTERNAL_IP
 2. Deploy jenkins workload
 
 ```
-git clone 
+git clone https://github.com/voltwinbolt-oss/gcp-gke-test/ && cd gcp-gke-test
 bash make.sh
 kubectl apply -f jenkins.yaml
 ```
@@ -166,6 +166,7 @@ the initial password and navigate to the URL it should be up
 
 #### GCP introduction 
 https://cloud.google.com/kubernetes-engine/docs/about
+
 https://cloud.google.com/kubernetes-engine/docs/learn
 
 #### Quickstart example, helpful to dive into GKE general concepts on CLI
@@ -175,10 +176,6 @@ https://github.com/GoogleCloudPlatform/bank-of-anthos
 Ingress is a well deserved dedicated section in references
 Helpful detour for issue with ingress load balancer not assigning external ip
 https://cloud.google.com/kubernetes-engine/docs/concepts/ingress
-
-> I have skipped creating reserved static ip address,
-> since I do not plan on deleting the Ingress(es) for
-> the purposes of this project 
 
 #### TLS:  Using Google-managed SSL certificates
 https://cloud.google.com/kubernetes-engine/docs/how-to/managed-certs
@@ -193,7 +190,9 @@ https://cloud.google.com/kubernetes-engine/docs/how-to/managed-certs
 #### TLS: Using Let's Encrypt with ingress-nginx
 
 https://cert-manager.io/docs/
+
 https://cert-manager.io/docs/configuration/acme/
+
 https://cert-manager.io/docs/usage/ingress/
 
 https://github.com/kubernetes/ingress-nginx/tags
